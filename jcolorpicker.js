@@ -1,0 +1,41 @@
+var canvas = document.getElementById('canvas')
+    , ctx = canvas.getContext('2d')
+    , gradientLeft
+    , gradientTop;
+
+ctx.beginPath();
+ctx.rect(0, 0, 200, 200);
+ctx.fillStyle = '#FF0000';
+ctx.fill();
+
+// Create gradient
+gradientLeft = ctx.createLinearGradient(0, 100, 200, 100);
+gradientTop = ctx.createLinearGradient(100, 0, 100, 200);
+
+// Add colors
+gradientLeft.addColorStop(0.000, 'rgba(255, 255, 255, 1)');
+gradientLeft.addColorStop(1.000, 'rgba(0204, 154, 129, 0)');
+gradientTop.addColorStop(0.000, 'rgba(204, 154, 129, 0)');
+gradientTop.addColorStop(1.000, 'rgba(0, 0, 0, 1)');
+
+// Fill with gradient
+ctx.fillStyle = gradientLeft;
+ctx.fillRect(0, 0, 200, 200);
+
+ctx.fillStyle = gradientTop;
+ctx.fillRect(0, 0, 200, 200);
+
+canvas.addEventListener("click", function(e) {
+  var coordinates = this.getBoundingClientRect();
+  var x = e.pageX - coordinates.left;
+  var y = e.pageY - coordinates.top;
+  var imgData = ctx.getImageData(x, y, 1, 1).data;
+  console.log(imgData);
+  var R = imgData[0];
+  var G = imgData[1];
+  var B = imgData[2];
+  var A = imgData[3];
+
+  var rgb = R + ',' + G + ',' + B + ',' + A;
+  document.querySelector('#rgb input').value = rgb;
+});
