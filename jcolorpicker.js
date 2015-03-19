@@ -43,6 +43,23 @@ canvas.addEventListener('click', function(e) {
   }
 });
 
+canvas.addEventListener('mousemove', function(e) {
+  coordinates = this.getBoundingClientRect();
+  x = e.pageX - coordinates.left;
+  y = e.pageY - coordinates.top;
+
+  // Replay the rectangle path (no need to fill() it) and test it
+  ctx.beginPath();
+  ctx.rect(250, 0, 50, COLORPICKER_HEIGHT);
+  if (ctx.isPointInPath(x, y)) {
+    canvas.style.cursor = 'pointer';
+    return;
+  }
+
+  // Return the cursor to the default style
+  canvas.style.cursor = 'default';
+});
+
 function init() {
   drawColorpicker('#FF0000');
   drawColorSlider('#FF0000');
