@@ -15,7 +15,8 @@ var canvas = document.getElementById('canvas')
   , blue
   , alpha
   , rgb
-  , hex;
+  , hex
+  , dragging = false;
 
 init();
 
@@ -38,9 +39,21 @@ canvas.addEventListener('click', function(e) {
 
   // TODO: constants
   if (x > 250 && x < 300 && y > 0 && y < 200) {
+    console.log(y);
     cleanColorpicker();
     drawColorpicker(hex);
+    cleanHue();
+    drawHue('#FF0000');
+    drawHueSlider(y);
   }
+});
+
+canvas.addEventListener('mousedown', function(e) {
+  dragging = true;
+});
+
+canvas.addEventListener('mouseup', function(e) {
+  dragging = false;
 });
 
 canvas.addEventListener('mousemove', function(e) {
@@ -52,7 +65,23 @@ canvas.addEventListener('mousemove', function(e) {
   ctx.beginPath();
   ctx.rect(250, 0, 50, COLORPICKER_HEIGHT);
   if (ctx.isPointInPath(x, y)) {
+    if (dragging) {
+      cleanColorpicker();
+      drawColorpicker(hex);
+      cleanHue();
+      drawHue('#FF0000');
+      drawHueSlider(y);
+    }
+
     canvas.style.cursor = 'pointer';
+    return;
+  }
+
+  // Replay the rectangle path (no need to fill() it) and test it
+  ctx.beginPath();
+  ctx.rect(0, 0, COLORPICKER_WIDTH, COLORPICKER_HEIGHT);
+  if (ctx.isPointInPath(x, y)) {
+    canvas.style.cursor = 'crosshair';
     return;
   }
 
@@ -62,10 +91,12 @@ canvas.addEventListener('mousemove', function(e) {
 
 function init() {
   drawColorpicker('#FF0000');
-  drawColorSlider('#FF0000');
+  drawHue('#FF0000');
+  drawHueSlider(1);
 }
 
 function drawColorpicker(baseHex) {
+  console.log(baseHex);
   ctx.beginPath();
   ctx.rect(0, 0, COLORPICKER_WIDTH, COLORPICKER_HEIGHT);
   ctx.fillStyle = baseHex;
@@ -91,7 +122,7 @@ function drawColorpicker(baseHex) {
   ctx.fillRect(0, 0, COLORPICKER_WIDTH, COLORPICKER_HEIGHT);
 }
 
-function drawColorSlider(baseHex) {
+function drawHue(baseHex) {
   var gradientSlider;
 
   ctx.beginPath();
@@ -115,8 +146,23 @@ function drawColorSlider(baseHex) {
   ctx.fillRect(250, 0, 50, COLORPICKER_HEIGHT);
 }
 
+function drawHueSlider(y) {
+  ctx.beginPath();
+  ctx.moveTo(240, y);
+  ctx.lineTo(250, y);
+  ctx.lineWidth = 3;
+
+  // set line color
+  ctx.strokeStyle = '#000000';
+  ctx.stroke();
+}
+
 function cleanColorpicker() {
   ctx.clearRect(0, 0, COLORPICKER_WIDTH, COLORPICKER_HEIGHT);
+}
+
+function cleanHue() {
+  ctx.clearRect(240, 0, 10, COLORPICKER_HEIGHT);
 }
 
 function rgbToHex(r, g, b) {
