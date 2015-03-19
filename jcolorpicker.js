@@ -1,7 +1,9 @@
 var canvas = document.getElementById('canvas')
   , ctx = canvas.getContext('2d')
-  , CANVAS_WIDTH = 200
+  , CANVAS_WIDTH = 400
   , CANVAS_HEIGHT = 200
+  , COLORPICKER_WIDTH = 200
+  , COLORPICKER_HEIGHT = 200
   , gradientLeft
   , gradientTop
   , coordinates
@@ -12,20 +14,15 @@ var canvas = document.getElementById('canvas')
   , green
   , blue
   , alpha
-  , rgb;
+  , rgb
+  , hex;
 
 init();
 
-canvas.addEventListener("click", function(e) {
-  reset();
-  init();
-
+canvas.addEventListener('click', function(e) {
   coordinates = this.getBoundingClientRect();
   x = e.pageX - coordinates.left;
   y = e.pageY - coordinates.top;
-
-  ctx.fillRect(x, y, 5, 5);
-  ctx.fillStyle = '#FFFFFF';
 
   imgData = ctx.getImageData(x, y, 1, 1).data;
 
@@ -35,19 +32,33 @@ canvas.addEventListener("click", function(e) {
   alpha = imgData[3];
 
   rgb = '(' + red + ', ' + green + ', ' + blue + ', ' + alpha + ')';
+  hex = rgbToHex(red, green, blue);
   document.querySelector('#rgb input').value = rgb;
-  document.querySelector('#hex input').value = rgbToHex(red, green, blue);
+  document.querySelector('#hex input').value = hex;
+
+  // TODO: constants
+  if (x > 250 && x < 300 && y > 0 && y < 200) {
+    cleanColorpicker();
+    drawColorpicker(hex);
+  }
 });
 
 function init() {
+  drawColorpicker('#FF0000');
+  drawColorSlider('#FF0000');
+}
+
+function drawColorpicker(baseHex) {
   ctx.beginPath();
-  ctx.rect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-  ctx.fillStyle = '#FF0000';
+  ctx.rect(0, 0, COLORPICKER_WIDTH, COLORPICKER_HEIGHT);
+  ctx.fillStyle = baseHex;
   ctx.fill();
 
   // Create gradient
-  gradientLeft = ctx.createLinearGradient(0, CANVAS_HEIGHT / 2, CANVAS_WIDTH, CANVAS_HEIGHT / 2);
-  gradientTop = ctx.createLinearGradient(CANVAS_WIDTH / 2, 0, CANVAS_WIDTH / 2, CANVAS_HEIGHT);
+  gradientLeft = ctx.createLinearGradient(
+    0, COLORPICKER_HEIGHT / 2, COLORPICKER_WIDTH, COLORPICKER_HEIGHT / 2);
+  gradientTop = ctx.createLinearGradient(
+    COLORPICKER_WIDTH / 2, 0, COLORPICKER_WIDTH / 2, COLORPICKER_HEIGHT);
 
   // Add colors
   gradientLeft.addColorStop(0.000, 'rgba(255, 255, 255, 1)');
@@ -57,14 +68,38 @@ function init() {
 
   // Fill with gradient
   ctx.fillStyle = gradientLeft;
-  ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+  ctx.fillRect(0, 0, COLORPICKER_WIDTH, COLORPICKER_HEIGHT);
 
   ctx.fillStyle = gradientTop;
-  ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+  ctx.fillRect(0, 0, COLORPICKER_WIDTH, COLORPICKER_HEIGHT);
 }
 
-function reset() {
-  ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+function drawColorSlider(baseHex) {
+  var gradientSlider;
+
+  ctx.beginPath();
+  // TODO: move to constants
+  ctx.rect(250, 0, 50, COLORPICKER_HEIGHT);
+  ctx.fillStyle = baseHex;
+  ctx.fill();
+
+  gradientSlider = ctx.createLinearGradient(300, 0, 300, 200);
+
+  gradientSlider.addColorStop(0.000, '#ff0000');
+  gradientSlider.addColorStop(0.170, '#ffff00');
+  gradientSlider.addColorStop(0.330, '#00ff00');
+  gradientSlider.addColorStop(0.500, '#00ffff');
+  gradientSlider.addColorStop(0.670, '#0000ff');
+  gradientSlider.addColorStop(0.830, '#ff00ff');
+  gradientSlider.addColorStop(1.000, '#ff0000');
+
+  // Fill with gradient
+  ctx.fillStyle = gradientSlider;
+  ctx.fillRect(250, 0, 50, COLORPICKER_HEIGHT);
+}
+
+function cleanColorpicker() {
+  ctx.clearRect(0, 0, COLORPICKER_WIDTH, COLORPICKER_HEIGHT);
 }
 
 function rgbToHex(r, g, b) {
@@ -73,5 +108,5 @@ function rgbToHex(r, g, b) {
 
 function componentToHex(c) {
   var hex = c.toString(16);
-  return hex.length == 1 ? '0' + hex : hex;
+  return hex.length === 1 ? '0' + hex : hex;
 }

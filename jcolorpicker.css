@@ -1,6 +1,4 @@
 .canvas {
-  width: 200px;
-  height: 200px;
   position: relative;
-  background: #FF0000;
+  border: 1px solid #000;
 }
