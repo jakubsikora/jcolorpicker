@@ -2,8 +2,16 @@ var canvas = document.getElementById('canvas')
   , ctx = canvas.getContext('2d')
   , CANVAS_WIDTH = 400
   , CANVAS_HEIGHT = 200
+  , COLORPICKER_POSX = 5
+  , COLORPICKER_POSY = 5
   , COLORPICKER_WIDTH = 200
-  , COLORPICKER_HEIGHT = 200
+  , COLORPICKER_HEIGHT = CANVAS_HEIGHT - 10
+  , HUE_WIDTH = 20
+  , HUE_HEIGHT = CANVAS_HEIGHT - 10
+  , HUE_POSX = COLORPICKER_POSX + COLORPICKER_WIDTH + 10
+  , HUE_POSY = 5
+  , HUE_SLIDER_HEIGHT = 10
+  , HUE_SLIDER_POSY = 5
   , gradientLeft
   , gradientTop
   , coordinates
@@ -25,26 +33,17 @@ canvas.addEventListener('click', function(e) {
   x = e.pageX - coordinates.left;
   y = e.pageY - coordinates.top;
 
-  imgData = ctx.getImageData(x, y, 1, 1).data;
+  hex = getColor(x, y);
 
-  red = imgData[0];
-  green = imgData[1];
-  blue = imgData[2];
-  alpha = imgData[3];
+  ctx.beginPath();
+  ctx.rect(HUE_POSX, HUE_POSY, HUE_WIDTH, HUE_HEIGHT);
+  if (ctx.isPointInPath(x, y)) {
+    if (!dragging) {
+      hex = getColor(x, y);
+      updateColorpicker(y, hex);
+    }
 
-  rgb = '(' + red + ', ' + green + ', ' + blue + ', ' + alpha + ')';
-  hex = rgbToHex(red, green, blue);
-  document.querySelector('#rgb input').value = rgb;
-  document.querySelector('#hex input').value = hex;
-
-  // TODO: constants
-  if (x > 250 && x < 300 && y > 0 && y < 200) {
-    console.log(y);
-    cleanColorpicker();
-    drawColorpicker(hex);
-    cleanHue();
-    drawHue('#FF0000');
-    drawHueSlider(y);
+    return;
   }
 });
 
@@ -61,25 +60,22 @@ canvas.addEventListener('mousemove', function(e) {
   x = e.pageX - coordinates.left;
   y = e.pageY - coordinates.top;
 
-  // Replay the rectangle path (no need to fill() it) and test it
   ctx.beginPath();
-  ctx.rect(250, 0, 50, COLORPICKER_HEIGHT);
+  ctx.rect(HUE_POSX, HUE_POSY, HUE_WIDTH, HUE_HEIGHT);
   if (ctx.isPointInPath(x, y)) {
     if (dragging) {
-      cleanColorpicker();
-      drawColorpicker(hex);
-      cleanHue();
-      drawHue('#FF0000');
-      drawHueSlider(y);
+      hex = getColor(x, y);
+      updateColorpicker(y, hex);
     }
 
     canvas.style.cursor = 'pointer';
     return;
   }
 
-  // Replay the rectangle path (no need to fill() it) and test it
   ctx.beginPath();
-  ctx.rect(0, 0, COLORPICKER_WIDTH, COLORPICKER_HEIGHT);
+  ctx.rect(
+    COLORPICKER_POSX, COLORPICKER_POSY,
+    COLORPICKER_WIDTH, COLORPICKER_HEIGHT);
   if (ctx.isPointInPath(x, y)) {
     canvas.style.cursor = 'crosshair';
     return;
@@ -89,24 +85,58 @@ canvas.addEventListener('mousemove', function(e) {
   canvas.style.cursor = 'default';
 });
 
+function getColor(x, y) {
+  ctx.beginPath();
+  ctx.rect(
+    COLORPICKER_POSX, COLORPICKER_POSY,
+    COLORPICKER_WIDTH, COLORPICKER_HEIGHT);
+  ctx.rect(HUE_POSX, HUE_POSY, HUE_WIDTH, HUE_HEIGHT);
+  if (ctx.isPointInPath(x, y)) {
+    imgData = ctx.getImageData(x, y, 1, 1).data;
+
+    red = imgData[0];
+    green = imgData[1];
+    blue = imgData[2];
+    alpha = imgData[3];
+
+    rgb = '(' + red + ', ' + green + ', ' + blue + ', ' + alpha + ')';
+    hex = rgbToHex(red, green, blue);
+    document.querySelector('#rgb input').value = rgb;
+    document.querySelector('#hex input').value = hex;
+
+    return hex;
+  }
+}
+
+function updateColorpicker(y, hex) {
+  cleanColorpicker();
+  drawColorpicker(hex);
+  cleanHue();
+  drawHue('#FF0000');
+  drawHueSlider(y);
+}
+
 function init() {
   drawColorpicker('#FF0000');
   drawHue('#FF0000');
-  drawHueSlider(1);
+  drawHueSlider(HUE_SLIDER_POSY);
 }
 
 function drawColorpicker(baseHex) {
-  console.log(baseHex);
   ctx.beginPath();
-  ctx.rect(0, 0, COLORPICKER_WIDTH, COLORPICKER_HEIGHT);
+  ctx.rect(
+    COLORPICKER_POSX, COLORPICKER_POSY,
+    COLORPICKER_WIDTH, COLORPICKER_HEIGHT);
   ctx.fillStyle = baseHex;
   ctx.fill();
 
   // Create gradient
   gradientLeft = ctx.createLinearGradient(
-    0, COLORPICKER_HEIGHT / 2, COLORPICKER_WIDTH, COLORPICKER_HEIGHT / 2);
+    COLORPICKER_POSX, COLORPICKER_HEIGHT / 2,
+    COLORPICKER_WIDTH, COLORPICKER_HEIGHT / 2);
   gradientTop = ctx.createLinearGradient(
-    COLORPICKER_WIDTH / 2, 0, COLORPICKER_WIDTH / 2, COLORPICKER_HEIGHT);
+    COLORPICKER_WIDTH / 2, COLORPICKER_POSY,
+    COLORPICKER_WIDTH / 2, COLORPICKER_HEIGHT);
 
   // Add colors
   gradientLeft.addColorStop(0.000, 'rgba(255, 255, 255, 1)');
@@ -116,10 +146,14 @@ function drawColorpicker(baseHex) {
 
   // Fill with gradient
   ctx.fillStyle = gradientLeft;
-  ctx.fillRect(0, 0, COLORPICKER_WIDTH, COLORPICKER_HEIGHT);
+  ctx.fillRect(
+    COLORPICKER_POSX, COLORPICKER_POSY,
+    COLORPICKER_WIDTH, COLORPICKER_HEIGHT);
 
   ctx.fillStyle = gradientTop;
-  ctx.fillRect(0, 0, COLORPICKER_WIDTH, COLORPICKER_HEIGHT);
+  ctx.fillRect(
+    COLORPICKER_POSX, COLORPICKER_POSY,
+    COLORPICKER_WIDTH, COLORPICKER_HEIGHT);
 }
 
 function drawHue(baseHex) {
@@ -127,11 +161,13 @@ function drawHue(baseHex) {
 
   ctx.beginPath();
   // TODO: move to constants
-  ctx.rect(250, 0, 50, COLORPICKER_HEIGHT);
+  ctx.rect(HUE_POSX, HUE_POSY, HUE_WIDTH, HUE_HEIGHT);
   ctx.fillStyle = baseHex;
   ctx.fill();
 
-  gradientSlider = ctx.createLinearGradient(300, 0, 300, 200);
+  gradientSlider = ctx.createLinearGradient(
+    HUE_POSX + (HUE_WIDTH / 2), HUE_POSY,
+    HUE_POSX + (HUE_WIDTH / 2), HUE_HEIGHT);
 
   gradientSlider.addColorStop(0.000, '#ff0000');
   gradientSlider.addColorStop(0.170, '#ffff00');
@@ -143,22 +179,22 @@ function drawHue(baseHex) {
 
   // Fill with gradient
   ctx.fillStyle = gradientSlider;
-  ctx.fillRect(250, 0, 50, COLORPICKER_HEIGHT);
+  ctx.fillRect(HUE_POSX, HUE_POSY, HUE_WIDTH, HUE_HEIGHT);
 }
 
 function drawHueSlider(y) {
   ctx.beginPath();
-  ctx.moveTo(240, y);
-  ctx.lineTo(250, y);
-  ctx.lineWidth = 3;
-
-  // set line color
-  ctx.strokeStyle = '#000000';
-  ctx.stroke();
+  ctx.strokeStyle = '#555555';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(
+    HUE_POSX - 1, y - (HUE_SLIDER_HEIGHT / 2),
+    HUE_WIDTH + 2, HUE_SLIDER_HEIGHT);
 }
 
 function cleanColorpicker() {
-  ctx.clearRect(0, 0, COLORPICKER_WIDTH, COLORPICKER_HEIGHT);
+  ctx.clearRect(
+    0, 0,
+    CANVAS_WIDTH, CANVAS_HEIGHT);
 }
 
 function cleanHue() {
