@@ -11,7 +11,17 @@
   <div id="rgb">RGB: <input type="text"></input></div>
   <div id="hex">HEX: <input type="text"></input></div>
 
-  <canvas width="300" height="200" class="canvas" id="canvas"></canvas>
+
+  <input id="colorpicker" />
+
+
   <script type="text/javascript" src="jcolorpicker.js"></script>
+  <script>
+    JColorpicker.init({
+      el: '#colorpicker',
+      color: '#00FF00'
+    });
+  </script>
+
 </body>
 </html>
