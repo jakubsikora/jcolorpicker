@@ -2,19 +2,18 @@
 
 var JColorpicker = (function() {
 
-  var colorpicker = {
-    initColor: null,
-    hex: null,
-    rgb: {},
-    element: null
-  };
+  var colorpicker = {};
 
   var holderEl = null
     , canvasEl = null
     , showCanvas = false
     , ctx = null
     , parentHolder = document.createElement('div')
-    , draggingMode = false;
+    , draggingMode = false
+    , initColor = null
+    , element = null
+    , hueHex = null
+    , baseHex = null;
 
   // constants
   var CANVAS_WIDTH = 400
@@ -43,101 +42,113 @@ var JColorpicker = (function() {
     ctx = canvasEl.getContext('2d');
   };
 
-  var setHolderBackground = function() {
-    holderEl.style.background = colorpicker.getHex();
+  var setHolderBackground = function(hex) {
+    holderEl.style.background = hex;
   };
 
   var initHandlers = function() {
-    holderEl.addEventListener('click', function(e) {
-      toggleCanvas();
-    });
+    holderEl.addEventListener('click', holderClickHandler);
 
-    canvasEl.addEventListener('click', function(e) {
-      var coordinates = this.getBoundingClientRect()
-        , x
-        , y
-        , hex;
-
-      x = e.pageX - coordinates.left;
-      y = e.pageY - coordinates.top;
-
-      ctx.beginPath();
-      ctx.rect(COLORPICKER_POSX, COLORPICKER_POSY,
-        COLORPICKER_WIDTH, COLORPICKER_HEIGHT);
-
-      if (ctx.isPointInPath(x, y)) {
-        if (!draggingMode) {
-          updateColorpicker(x, y, false, true);
-        }
-
-        return;
-      }
-
-      ctx.beginPath();
-      ctx.rect(HUE_POSX, HUE_POSY, HUE_WIDTH, HUE_HEIGHT);
-
-      if (ctx.isPointInPath(x, y)) {
-        if (!draggingMode) {
-          updateColorpicker(x, y, true, false);
-        }
-
-        return;
-      }
-    });
-
-    canvasEl.addEventListener('mousedown', function(e) {
-      draggingMode = true;
-    });
-
-    canvasEl.addEventListener('mouseup', function(e) {
-      draggingMode = false;
-    });
-
-    canvasEl.addEventListener('mousemove', function(e) {
-      var coordinates = this.getBoundingClientRect()
-        , x
-        , y
-        , hex;
-
-      x = e.pageX - coordinates.left;
-      y = e.pageY - coordinates.top;
-
-      ctx.beginPath();
-      ctx.rect(HUE_POSX, HUE_POSY, HUE_WIDTH, HUE_HEIGHT);
-
-      if (ctx.isPointInPath(x, y)) {
-        if (draggingMode) {
-          updateColorpicker(x, y, true, false);
-        }
-
-        canvasEl.style.cursor = 'pointer';
-        return;
-      }
-
-      ctx.beginPath();
-      ctx.rect(
-        COLORPICKER_POSX, COLORPICKER_POSY,
-        COLORPICKER_WIDTH, COLORPICKER_HEIGHT);
-
-      if (ctx.isPointInPath(x, y)) {
-        canvasEl.style.cursor = 'crosshair';
-        return;
-      }
-
-      // Return the cursor to the default style
-      canvasEl.style.cursor = 'default';
-    });
+    canvasEl.addEventListener('click', canvasClickHandler);
+    canvasEl.addEventListener('mousedown', canvasMouseDownHandler);
+    canvasEl.addEventListener('mouseup', canvasMouseUpHandler);
+    canvasEl.addEventListener('mousemove', canvasMouseMoveHandler);
   };
 
-  var updateColorpicker = function(x, y, updateSlider, updatePoint) {
-    var hex = getColor(x, y);
+  var holderClickHandler = function() {
+    toggleCanvas();
+  };
+
+  var canvasClickHandler = function(e) {
+    var coordinates = this.getBoundingClientRect()
+      , x
+      , y;
+
+    x = e.pageX - coordinates.left;
+    y = e.pageY - coordinates.top;
+
+    ctx.beginPath();
+    ctx.rect(COLORPICKER_POSX, COLORPICKER_POSY,
+      COLORPICKER_WIDTH, COLORPICKER_HEIGHT);
+
+    if (ctx.isPointInPath(x, y)) {
+      if (!draggingMode) {
+        updateFromColorpicker(x, y);
+      }
+
+      return;
+    }
+
+    ctx.beginPath();
+    ctx.rect(HUE_POSX, HUE_POSY, HUE_WIDTH, HUE_HEIGHT);
+
+    if (ctx.isPointInPath(x, y)) {
+      if (!draggingMode) {
+        updateFromHue(x, y);
+      }
+
+      return;
+    }
+  };
+
+  var canvasMouseMoveHandler = function(e) {
+    var coordinates = this.getBoundingClientRect()
+      , x
+      , y;
+
+    x = e.pageX - coordinates.left;
+    y = e.pageY - coordinates.top;
+
+    ctx.beginPath();
+    ctx.rect(HUE_POSX, HUE_POSY, HUE_WIDTH, HUE_HEIGHT);
+
+    if (ctx.isPointInPath(x, y)) {
+      if (draggingMode) {
+        updateFromHue(x, y);
+      }
+
+      canvasEl.style.cursor = 'pointer';
+      return;
+    }
+
+    ctx.beginPath();
+    ctx.rect(
+      COLORPICKER_POSX, COLORPICKER_POSY,
+      COLORPICKER_WIDTH, COLORPICKER_HEIGHT);
+
+    if (ctx.isPointInPath(x, y)) {
+      canvasEl.style.cursor = 'crosshair';
+      return;
+    }
+
+    // Return the cursor to the default style
+    canvasEl.style.cursor = 'default';
+  };
+
+  var canvasMouseDownHandler = function(e) {
+    draggingMode = true;
+  };
+
+  var canvasMouseUpHandler = function(e) {
+    draggingMode = false;
+  };
+
+  var updateFromColorpicker = function(x, y, updateSlider, updatePoint) {
+    console.log('updateFromColorpicker');
+    var hex = calculateColor(x, y);
+    document.querySelector('#hex input').value = hex;
+    setHolderBackground(hex);
 
     clearCanvas();
-    drawColorpicker(hex);
+    drawColorpicker();
     drawHue();
 
-    if (updateSlider) drawHueSlider(y);
-    if (updatePoint) drawColorPoint(x, y);
+    // if (updateSlider) drawHueSlider(y);
+    // if (updatePoint) drawColorPoint(x, y);
+  };
+
+  var updateFromHue = function() {
+    console.log('updateFromHue');
   };
 
   var toggleCanvas = function() {
@@ -157,7 +168,7 @@ var JColorpicker = (function() {
     return parentHolder.children[0];
   };
 
-  var drawColorpicker = function() {
+  var drawColorpicker = function(baseHex) {
     var gradientLeft
       , gradientTop;
 
@@ -165,7 +176,7 @@ var JColorpicker = (function() {
     ctx.rect(
       COLORPICKER_POSX, COLORPICKER_POSY,
       COLORPICKER_WIDTH, COLORPICKER_HEIGHT);
-    ctx.fillStyle = colorpicker.getHex();
+    ctx.fillStyle = baseHex;
     ctx.fill();
 
     // Create gradient
@@ -237,7 +248,7 @@ var JColorpicker = (function() {
     ctx.stroke();
   };
 
-  var getColor = function(x, y) {
+  var calculateColor = function(x, y) {
     var imgData
       , red
       , green
@@ -251,33 +262,7 @@ var JColorpicker = (function() {
     blue = imgData[2];
     alpha = imgData[3];
 
-    colorpicker.setRGB({
-      r: red,
-      g: green,
-      b: blue,
-      a: alpha
-    });
-
-    ctx.beginPath();
-    ctx.rect(
-      COLORPICKER_POSX, COLORPICKER_POSY,
-      COLORPICKER_WIDTH, COLORPICKER_HEIGHT);
-
-    if (ctx.isPointInPath(x, y)) {
-      document.querySelector('#hex input').value = colorpicker.hex;
-      //colorpicker.setHex(rgbToHex(red, green, blue));
-      setHolderBackground();
-
-      return;
-    }
-
-    ctx.beginPath();
-    ctx.rect(HUE_POSX, HUE_POSY, HUE_WIDTH, HUE_HEIGHT);
-
-    if (ctx.isPointInPath(x, y)) {
-      colorpicker.setHex(rgbToHex(red, green, blue));
-      return colorpicker.getHex();
-    }
+    return (rgbToHex(red, green, blue));
   };
 
   var rgbToHex = function(r, g, b) {
@@ -301,32 +286,16 @@ var JColorpicker = (function() {
     }
 
     // TODO: recognize format of color.
-    this.setHex(options.initColor);
+    baseHex = options.initColor;
 
     initElements(this.element);
     initHandlers();
-    setHolderBackground();
+    setHolderBackground(options.initColor);
 
-    drawColorpicker();
+    drawColorpicker(baseHex);
     drawHue();
     drawHueSlider(HUE_SLIDER_POSY);
     drawColorPoint(5, 5);
-  };
-
-  colorpicker.getHex = function() {
-    return this.hex;
-  };
-
-  colorpicker.setHex = function(hex) {
-    this.hex = hex;
-  };
-
-  colorpicker.getRGB = function() {
-    return this.rgb;
-  };
-
-  colorpicker.setRGB = function(rgb) {
-    this.rgb = rgb;
   };
 
   return colorpicker;
