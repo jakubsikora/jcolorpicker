@@ -8,7 +8,6 @@
   </style>
 </head>
 <body>
-  <div id="rgb">RGB: <input type="text"></input></div>
   <div id="hex">HEX: <input type="text"></input></div>
 
 
@@ -19,7 +18,8 @@
   <script>
     JColorpicker.init({
       el: '#colorpicker',
-      color: '#00FF00'
+      initColor: '#00FF00',
+      valueAttr: 'data-cp-hex'
     });
   </script>
 

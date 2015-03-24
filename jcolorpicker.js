@@ -3,7 +3,9 @@
 var JColorpicker = (function() {
 
   var colorpicker = {
-    color: null,
+    initColor: null,
+    hex: null,
+    rgb: {},
     element: null
   };
 
@@ -26,7 +28,8 @@ var JColorpicker = (function() {
     , HUE_POSX = COLORPICKER_POSX + COLORPICKER_WIDTH + 10
     , HUE_POSY = 5
     , HUE_SLIDER_HEIGHT = 10
-    , HUE_SLIDER_POSY = 5;
+    , HUE_SLIDER_POSY = 5
+    , POINT_RADIUS = 3;
 
   var initElements = function(el) {
     el.style.display = 'none';
@@ -38,6 +41,10 @@ var JColorpicker = (function() {
     el.parentNode.insertBefore(canvasEl, el.nextSibling);
 
     ctx = canvasEl.getContext('2d');
+  };
+
+  var setHolderBackground = function() {
+    holderEl.style.background = colorpicker.getHex();
   };
 
   var initHandlers = function() {
@@ -54,15 +61,24 @@ var JColorpicker = (function() {
       x = e.pageX - coordinates.left;
       y = e.pageY - coordinates.top;
 
-      hex = getColor(x, y);
+      ctx.beginPath();
+      ctx.rect(COLORPICKER_POSX, COLORPICKER_POSY,
+        COLORPICKER_WIDTH, COLORPICKER_HEIGHT);
+
+      if (ctx.isPointInPath(x, y)) {
+        if (!draggingMode) {
+          updateColorpicker(x, y, false, true);
+        }
+
+        return;
+      }
 
       ctx.beginPath();
       ctx.rect(HUE_POSX, HUE_POSY, HUE_WIDTH, HUE_HEIGHT);
 
       if (ctx.isPointInPath(x, y)) {
         if (!draggingMode) {
-          hex = getColor(x, y);
-          updateColorpicker(y, hex);
+          updateColorpicker(x, y, true, false);
         }
 
         return;
@@ -91,8 +107,7 @@ var JColorpicker = (function() {
 
       if (ctx.isPointInPath(x, y)) {
         if (draggingMode) {
-          hex = getColor(x, y);
-          updateColorpicker(y, hex);
+          updateColorpicker(x, y, true, false);
         }
 
         canvasEl.style.cursor = 'pointer';
@@ -114,11 +129,15 @@ var JColorpicker = (function() {
     });
   };
 
-  var updateColorpicker = function(y, hex) {
+  var updateColorpicker = function(x, y, updateSlider, updatePoint) {
+    var hex = getColor(x, y);
+
     clearCanvas();
     drawColorpicker(hex);
     drawHue();
-    drawHueSlider(y);
+
+    if (updateSlider) drawHueSlider(y);
+    if (updatePoint) drawColorPoint(x, y);
   };
 
   var toggleCanvas = function() {
@@ -134,10 +153,11 @@ var JColorpicker = (function() {
 
   var createHolderChild = function(html) {
     parentHolder.innerHTML = html;
+
     return parentHolder.children[0];
   };
 
-  var drawColorpicker = function(baseHex) {
+  var drawColorpicker = function() {
     var gradientLeft
       , gradientTop;
 
@@ -145,7 +165,7 @@ var JColorpicker = (function() {
     ctx.rect(
       COLORPICKER_POSX, COLORPICKER_POSY,
       COLORPICKER_WIDTH, COLORPICKER_HEIGHT);
-    ctx.fillStyle = baseHex;
+    ctx.fillStyle = colorpicker.getHex();
     ctx.fill();
 
     // Create gradient
@@ -203,35 +223,60 @@ var JColorpicker = (function() {
       HUE_WIDTH + 2, HUE_SLIDER_HEIGHT);
   };
 
+  var drawColorPoint = function(x, y) {
+    ctx.beginPath();
+    ctx.arc(x, y, POINT_RADIUS, 0, 2 * Math.PI, false);
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(x + 1, y + 1, POINT_RADIUS, 0, 2 * Math.PI, false);
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = '#000000';
+    ctx.stroke();
+  };
+
   var getColor = function(x, y) {
     var imgData
       , red
       , green
       , blue
-      , alpha
-      , rgb
-      , hex;
+      , alpha;
+
+    imgData = ctx.getImageData(x, y, 1, 1).data;
+
+    red = imgData[0];
+    green = imgData[1];
+    blue = imgData[2];
+    alpha = imgData[3];
+
+    colorpicker.setRGB({
+      r: red,
+      g: green,
+      b: blue,
+      a: alpha
+    });
 
     ctx.beginPath();
     ctx.rect(
       COLORPICKER_POSX, COLORPICKER_POSY,
       COLORPICKER_WIDTH, COLORPICKER_HEIGHT);
+
+    if (ctx.isPointInPath(x, y)) {
+      document.querySelector('#hex input').value = colorpicker.hex;
+      //colorpicker.setHex(rgbToHex(red, green, blue));
+      setHolderBackground();
+
+      return;
+    }
+
+    ctx.beginPath();
     ctx.rect(HUE_POSX, HUE_POSY, HUE_WIDTH, HUE_HEIGHT);
 
     if (ctx.isPointInPath(x, y)) {
-      imgData = ctx.getImageData(x, y, 1, 1).data;
-
-      red = imgData[0];
-      green = imgData[1];
-      blue = imgData[2];
-      alpha = imgData[3];
-
-      rgb = '(' + red + ', ' + green + ', ' + blue + ', ' + alpha + ')';
-      hex = rgbToHex(red, green, blue);
-      document.querySelector('#rgb input').value = rgb;
-      document.querySelector('#hex input').value = hex;
-
-      return hex;
+      colorpicker.setHex(rgbToHex(red, green, blue));
+      return colorpicker.getHex();
     }
   };
 
@@ -244,7 +289,10 @@ var JColorpicker = (function() {
     return hex.length === 1 ? '0' + hex : hex;
   };
 
-  // Public methods
+  /**
+   * PUBLIC METHODS
+   */
+
   colorpicker.init = function(options) {
     if (typeof options.el === 'string') {
       this.element = document.querySelector(options.el);
@@ -252,22 +300,33 @@ var JColorpicker = (function() {
       this.element = options.el;
     }
 
-    this.color = options.color;
+    // TODO: recognize format of color.
+    this.setHex(options.initColor);
 
     initElements(this.element);
     initHandlers();
+    setHolderBackground();
 
-    drawColorpicker(this.color);
+    drawColorpicker();
     drawHue();
     drawHueSlider(HUE_SLIDER_POSY);
+    drawColorPoint(5, 5);
   };
 
-  colorpicker.getColor = function() {
-    console.log('getColor');
+  colorpicker.getHex = function() {
+    return this.hex;
   };
 
-  colorpicker.setColor = function() {
-    console.log('setColor');
+  colorpicker.setHex = function(hex) {
+    this.hex = hex;
+  };
+
+  colorpicker.getRGB = function() {
+    return this.rgb;
+  };
+
+  colorpicker.setRGB = function(rgb) {
+    this.rgb = rgb;
   };
 
   return colorpicker;
