@@ -13,7 +13,10 @@ var JColorpicker = (function() {
     , initColor = null
     , element = null
     , hueHex = null
-    , baseHex = null;
+    , baseHex = null
+    , cpX = 0
+    , cpY = 0
+    , hueY = 0;
 
   // constants
   var CANVAS_WIDTH = 400
@@ -117,6 +120,10 @@ var JColorpicker = (function() {
       COLORPICKER_WIDTH, COLORPICKER_HEIGHT);
 
     if (ctx.isPointInPath(x, y)) {
+      if (draggingMode) {
+        updateFromColorpicker(x, y);
+      }
+
       canvasEl.style.cursor = 'crosshair';
       return;
     }
@@ -133,22 +140,35 @@ var JColorpicker = (function() {
     draggingMode = false;
   };
 
-  var updateFromColorpicker = function(x, y, updateSlider, updatePoint) {
-    console.log('updateFromColorpicker');
+  var updateFromColorpicker = function(x, y) {
     var hex = calculateColor(x, y);
     document.querySelector('#hex input').value = hex;
     setHolderBackground(hex);
 
     clearCanvas();
-    drawColorpicker();
+    drawColorpicker(baseHex);
     drawHue();
+    drawHueSlider(hueY);
+    drawColorPoint(x, y);
 
-    // if (updateSlider) drawHueSlider(y);
-    // if (updatePoint) drawColorPoint(x, y);
+    cpX = x;
+    cpY = y;
   };
 
-  var updateFromHue = function() {
-    console.log('updateFromHue');
+  var updateFromHue = function(x, y) {
+    var hueHex = calculateColor(x, y)
+      , hex = null;
+
+    clearCanvas();
+    drawColorpicker(hueHex);
+    drawHue();
+    drawHueSlider(y);
+    drawColorPoint(cpX, cpY);
+
+    hex = calculateColor(cpX, cpY);
+
+    document.querySelector('#hex input').value = hex;
+    setHolderBackground(hex);
   };
 
   var toggleCanvas = function() {
@@ -168,7 +188,7 @@ var JColorpicker = (function() {
     return parentHolder.children[0];
   };
 
-  var drawColorpicker = function(baseHex) {
+  var drawColorpicker = function(hex) {
     var gradientLeft
       , gradientTop;
 
@@ -176,8 +196,9 @@ var JColorpicker = (function() {
     ctx.rect(
       COLORPICKER_POSX, COLORPICKER_POSY,
       COLORPICKER_WIDTH, COLORPICKER_HEIGHT);
-    ctx.fillStyle = baseHex;
+    ctx.fillStyle = hex;
     ctx.fill();
+    baseHex = hex;
 
     // Create gradient
     gradientLeft = ctx.createLinearGradient(
@@ -203,6 +224,7 @@ var JColorpicker = (function() {
     ctx.fillRect(
       COLORPICKER_POSX, COLORPICKER_POSY,
       COLORPICKER_WIDTH, COLORPICKER_HEIGHT);
+
   };
 
   var drawHue = function() {
@@ -232,6 +254,7 @@ var JColorpicker = (function() {
     ctx.strokeRect(
       HUE_POSX - 1, y - (HUE_SLIDER_HEIGHT / 2),
       HUE_WIDTH + 2, HUE_SLIDER_HEIGHT);
+    hueY = y;
   };
 
   var drawColorPoint = function(x, y) {
@@ -295,7 +318,7 @@ var JColorpicker = (function() {
     drawColorpicker(baseHex);
     drawHue();
     drawHueSlider(HUE_SLIDER_POSY);
-    drawColorPoint(5, 5);
+    drawColorPoint(cpX, cpY);
   };
 
   return colorpicker;
