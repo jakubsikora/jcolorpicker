@@ -16,7 +16,10 @@ var JColorpicker = (function() {
     , baseHex = null
     , cpX = 0
     , cpY = 0
-    , hueY = 0;
+    , hueY = 0
+    , valueAttr = null
+    , hexInput = null
+    , options = {};
 
   // constants
   var CANVAS_WIDTH = 400
@@ -34,19 +37,41 @@ var JColorpicker = (function() {
     , POINT_RADIUS = 3;
 
   var initElements = function(el) {
+    var wrapper = document.createElement('div');
+    wrapper.setAttribute('class', 'jc-wrapper');
+
+    el.parentNode.insertBefore(wrapper, el.nextSibling);
     el.style.display = 'none';
 
     holderEl = createHolderChild('<div class="jc-input"></div>');
-    el.parentNode.insertBefore(holderEl, el.nextSibling);
+    wrapper.appendChild(holderEl);
 
     canvasEl = createHolderChild('<canvas width="300" height="200" id="jc-canvas" style="display:none;"></canvas>');
-    el.parentNode.insertBefore(canvasEl, el.nextSibling);
+    wrapper.appendChild(canvasEl);
+
+    if (options.showHex) {
+      hexInput = document.createElement('input');
+      hexInput.setAttribute('type', 'text');
+      hexInput.setAttribute('id', 'jc-hex');
+      hexInput.style.display = 'none';
+      wrapper.appendChild(hexInput);
+    }
 
     ctx = canvasEl.getContext('2d');
   };
 
+  var createHolderChild = function(html) {
+    parentHolder.innerHTML = html;
+
+    return parentHolder.children[0];
+  };
+
   var setHolderBackground = function(hex) {
     holderEl.style.background = hex;
+  };
+
+  var setValueAttribute = function(val) {
+    holderEl.setAttribute(valueAttr, val);
   };
 
   var initHandlers = function() {
@@ -142,8 +167,8 @@ var JColorpicker = (function() {
 
   var updateFromColorpicker = function(x, y) {
     var hex = calculateColor(x, y);
-    document.querySelector('#hex input').value = hex;
     setHolderBackground(hex);
+    setValueAttribute(hex);
 
     clearCanvas();
     drawColorpicker(baseHex);
@@ -153,6 +178,8 @@ var JColorpicker = (function() {
 
     cpX = x;
     cpY = y;
+
+    if (options.showHex) hexInput.value = hex;
   };
 
   var updateFromHue = function(x, y) {
@@ -167,25 +194,25 @@ var JColorpicker = (function() {
 
     hex = calculateColor(cpX, cpY);
 
-    document.querySelector('#hex input').value = hex;
     setHolderBackground(hex);
+    setValueAttribute(hex);
+
+    if (options.showHex) hexInput.value = hex;
   };
 
   var toggleCanvas = function() {
     showCanvas = !showCanvas;
     canvasEl.style.display = showCanvas ?  'block' : 'none';
+
+    if (showCanvas) cacheColorpicker();
+
+    if (options.showHex) hexInput.style.display = showCanvas ?  'block' : 'none';
   };
 
   var clearCanvas = function() {
     ctx.clearRect(
       0, 0,
       CANVAS_WIDTH, CANVAS_HEIGHT);
-  };
-
-  var createHolderChild = function(html) {
-    parentHolder.innerHTML = html;
-
-    return parentHolder.children[0];
   };
 
   var drawColorpicker = function(hex) {
@@ -297,25 +324,43 @@ var JColorpicker = (function() {
     return hex.length === 1 ? '0' + hex : hex;
   };
 
+  var cacheColorpicker = function() {
+    var cache = {};
+
+    for (var i = COLORPICKER_POSX; i < COLORPICKER_WIDTH + COLORPICKER_POSX; i++) {
+      for (var j = COLORPICKER_POSY; j < COLORPICKER_HEIGHT + COLORPICKER_POSY; j++) {
+        cache[j] = ctx.getImageData(i, j, 1, 1).data;
+      }
+    }
+
+    console.log(cache);
+  };
+
   /**
    * PUBLIC METHODS
    */
 
-  colorpicker.init = function(options) {
-    if (typeof options.el === 'string') {
-      this.element = document.querySelector(options.el);
-    } else if (typeof options.el === 'object') {
-      this.element = options.el;
+  colorpicker.init = function(opts) {
+    // TODO: default options, override
+    options = opts;
+
+    if (typeof opts.el === 'string') {
+      this.element = document.querySelector(opts.el);
+    } else if (typeof opts.el === 'object') {
+      this.element = opts.el;
     }
 
     // TODO: recognize format of color.
-    baseHex = options.initColor;
+    baseHex = opts.initColor;
+    valueAttr = opts.valueAttr;
 
     initElements(this.element);
     initHandlers();
-    setHolderBackground(options.initColor);
+    setHolderBackground(opts.initColor);
+    setValueAttribute(opts.initColor);
 
     drawColorpicker(baseHex);
+    hexInput.value = baseHex;
     drawHue();
     drawHueSlider(HUE_SLIDER_POSY);
     drawColorPoint(cpX, cpY);
