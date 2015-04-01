@@ -1,9 +1,8 @@
 # TODO
 
-5. Options to show/hide input with RGB, HEX
-6. Reveling module pattern.
-7. Multiple instances.
-8. Unit tests.
-9. Preset color from input.
-10. Remove listeners.
-11. Positioning of the canvas.
+1. Preset color from input.
+2. Options to show/hide input with RGB, HEX
+3. Multiple instances.
+4. Unit tests.
+5. Remove listeners.
+6. Positioning of the canvas.
